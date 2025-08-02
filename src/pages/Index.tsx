@@ -101,6 +101,22 @@ const Index = () => {
     }
   };
 
+  const handleNavigate = (view: string) => {
+    switch (view) {
+      case 'shopping-list':
+        setCurrentView('shopping-list');
+        break;
+      case 'scanner':
+        setCurrentView('scanner');
+        break;
+      case 'cart':
+        setCurrentView('cart');
+        break;
+      default:
+        setCurrentView('shopping-list');
+    }
+  };
+
   const getTitle = () => {
     switch (currentView) {
       case 'shopping-list': return 'Lista de Compras';
@@ -141,7 +157,9 @@ const Index = () => {
       title={getTitle()}
       showBack={currentView !== 'shopping-list'}
       onBack={handleBack}
-      showBottomNav={['shopping-list', 'cart'].includes(currentView)}
+      showBottomNav={['shopping-list', 'scanner', 'cart'].includes(currentView)}
+      currentView={currentView}
+      onNavigate={handleNavigate}
     >
       {renderContent()}
     </MobileLayout>

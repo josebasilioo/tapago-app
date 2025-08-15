@@ -135,15 +135,21 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
         setIsScanning(false);
       }, 1000);
     } else {
-      // Treat as product barcode - simulate finding a product
+      // Treat as product code - create product link and redirect
+      const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+      const productUrl = `${window.location.origin}/produto/${randomProduct.id}?ref=qr&code=${encodeURIComponent(data)}`;
+      
+      toast({
+        title: "Produto encontrado!",
+        description: `${randomProduct.name} - Redirecionando...`,
+      });
+      
       setTimeout(() => {
-        setIsScanning(false);
-        const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+        // First add to cart/show product
         onProductFound(randomProduct);
-        toast({
-          title: "Produto encontrado!",
-          description: `${randomProduct.name} foi escaneado com sucesso.`,
-        });
+        // Then redirect to product page
+        window.open(productUrl, '_blank');
+        setIsScanning(false);
       }, 1000);
     }
   };
@@ -156,7 +162,7 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
         setIsScanning(false);
         toast({
           title: "Nenhum código detectado",
-          description: "Tente posicionar o código dentro do quadrado.",
+          description: "Tente posicionar o código dentro da área de captura.",
           variant: "destructive"
         });
       }, 2000);
@@ -193,36 +199,17 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
         className="absolute inset-0 w-full h-full object-cover"
       />
       
-      {/* Scanning overlay */}
-      <div className="absolute inset-0 bg-black/20">
-        <div className="relative w-full h-full">
-          {/* Scanning frame */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-64 h-64 border-2 border-white/70 rounded-lg">
-              <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
-              <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-lg"></div>
-              
-              {/* Scanning line animation */}
-              {isScanning && (
-                <div className="absolute inset-x-0 top-1/2 h-1 bg-success animate-pulse">
-                  <div className="h-full bg-gradient-to-r from-transparent via-success to-transparent animate-ping"></div>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Scanning overlay - minimal design, QR scanner library handles the detection frame */}
+      <div className="absolute inset-0 bg-black/10">
+        {/* Instructions */}
+        <div className="absolute bottom-32 left-0 right-0 text-center px-4">
+          <p className="text-white text-lg mb-2 drop-shadow-lg">
+            {isScanning ? 'Processando código...' : 'Aponte para o QR code ou código de barras'}
+          </p>
+          <p className="text-white/80 text-sm drop-shadow-lg">
+            A detecção é automática
+          </p>
         </div>
-      </div>
-
-      {/* Instructions */}
-      <div className="absolute bottom-32 left-0 right-0 text-center px-4">
-        <p className="text-white text-lg mb-2 drop-shadow-lg">
-          {isScanning ? 'Escaneando produto...' : 'Aponte para o código de barras'}
-        </p>
-        <p className="text-white/80 text-sm drop-shadow-lg">
-          Posicione o código dentro do quadrado
-        </p>
       </div>
 
       {/* Controls */}

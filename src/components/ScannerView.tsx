@@ -4,6 +4,7 @@ import { Camera, Flashlight, RotateCcw } from 'lucide-react';
 import { Product } from '@/types/grocery';
 import { mockProducts } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import QrScanner from 'qr-scanner';
 
 interface ScannerViewProps {
   onProductFound: (product: Product) => void;
@@ -16,13 +17,18 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
   const { toast } = useToast();
 
-  // Start camera when component mounts
+  // Start camera and QR scanner when component mounts
   useEffect(() => {
     startCamera();
     return () => {
-      // Cleanup: stop camera when component unmounts
+      // Cleanup: stop camera and QR scanner when component unmounts
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
+      }
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
@@ -33,7 +39,11 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
     try {
       setCameraError(null);
       
-      // Stop existing stream
+      // Stop existing QR scanner and stream
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
+      }
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
@@ -50,6 +60,20 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        
+        // Initialize QR Scanner
+        qrScannerRef.current = new QrScanner(
+          videoRef.current,
+          (result) => handleQrResult(result.data),
+          {
+            preferredCamera: facingMode,
+            highlightScanRegion: true,
+            highlightCodeOutline: true,
+          }
+        );
+        
+        // Start QR scanning
+        await qrScannerRef.current.start();
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
@@ -93,20 +117,50 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
     }
   };
 
-  const simulateScan = () => {
+  const handleQrResult = (data: string) => {
     setIsScanning(true);
     
-    // Simulate scanning animation and processing
-    setTimeout(() => {
-      setIsScanning(false);
-      // Return a random mock product
-      const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
-      onProductFound(randomProduct);
+    // Check if the result is a URL (QR code with link)
+    const urlPattern = /^(https?:\/\/|www\.)/i;
+    
+    if (urlPattern.test(data)) {
+      // It's a URL - redirect to it
       toast({
-        title: "Produto encontrado!",
-        description: `${randomProduct.name} foi escaneado com sucesso.`,
+        title: "QR Code detectado!",
+        description: `Redirecionando para: ${data}`,
       });
-    }, 2000);
+      
+      setTimeout(() => {
+        window.open(data, '_blank');
+        setIsScanning(false);
+      }, 1000);
+    } else {
+      // Treat as product barcode - simulate finding a product
+      setTimeout(() => {
+        setIsScanning(false);
+        const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+        onProductFound(randomProduct);
+        toast({
+          title: "Produto encontrado!",
+          description: `${randomProduct.name} foi escaneado com sucesso.`,
+        });
+      }, 1000);
+    }
+  };
+
+  const simulateScan = () => {
+    // Trigger a manual scan attempt
+    if (qrScannerRef.current) {
+      setIsScanning(true);
+      setTimeout(() => {
+        setIsScanning(false);
+        toast({
+          title: "Nenhum código detectado",
+          description: "Tente posicionar o código dentro do quadrado.",
+          variant: "destructive"
+        });
+      }, 2000);
+    }
   };
 
   if (cameraError) {

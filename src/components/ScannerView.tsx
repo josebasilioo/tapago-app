@@ -18,6 +18,7 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
+  const isHandlingRef = useRef(false);
   const { toast } = useToast();
 
   // Start camera and QR scanner when component mounts
@@ -38,6 +39,7 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
   const startCamera = async () => {
     try {
       setCameraError(null);
+      isHandlingRef.current = false;
       
       // Stop existing QR scanner and stream
       if (qrScannerRef.current) {
@@ -117,40 +119,47 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
     }
   };
 
+  const normalizeUrl = (input: string) => (input.startsWith('http://') || input.startsWith('https://')) ? input : `https://${input}`;
+
+  const stopAll = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
+    }
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      setStream(null);
+    }
+  };
+
   const handleQrResult = (data: string) => {
+    if (isHandlingRef.current) return;
+    isHandlingRef.current = true;
     setIsScanning(true);
     
-    // Check if the result is a URL (QR code with link)
     const urlPattern = /^(https?:\/\/|www\.)/i;
     
     if (urlPattern.test(data)) {
-      // It's a URL - redirect to it
+      const target = normalizeUrl(data);
       toast({
         title: "QR Code detectado!",
-        description: `Redirecionando para: ${data}`,
+        description: `Redirecionando para: ${target}`,
       });
-      
       setTimeout(() => {
-        window.open(data, '_blank');
-        setIsScanning(false);
-      }, 1000);
+        stopAll();
+        window.location.assign(target);
+      }, 200);
     } else {
-      // Treat as product code - create product link and redirect
       const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
-      const productUrl = `${window.location.origin}/produto/${randomProduct.id}?ref=qr&code=${encodeURIComponent(data)}`;
-      
       toast({
         title: "Produto encontrado!",
-        description: `${randomProduct.name} - Redirecionando...`,
+        description: `${randomProduct.name} - abrindo detalhes...`,
       });
-      
       setTimeout(() => {
-        // First add to cart/show product
         onProductFound(randomProduct);
-        // Then redirect to product page
-        window.open(productUrl, '_blank');
         setIsScanning(false);
-      }, 1000);
+      }, 300);
     }
   };
 

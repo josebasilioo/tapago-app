@@ -151,14 +151,18 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
         window.location.assign(target);
       }, 200);
     } else {
+      // Treat as product code - find product and redirect to product page
       const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
+      const productUrl = `/produto/${randomProduct.id}?ref=qr&code=${encodeURIComponent(data)}`;
+      
       toast({
         title: "Produto encontrado!",
-        description: `${randomProduct.name} - abrindo detalhes...`,
+        description: `${randomProduct.name} - abrindo página do produto...`,
       });
+      
       setTimeout(() => {
-        onProductFound(randomProduct);
-        setIsScanning(false);
+        stopAll();
+        window.location.assign(productUrl);
       }, 300);
     }
   };

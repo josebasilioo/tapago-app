@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Camera, Flashlight, RotateCcw } from 'lucide-react';
 import { Product } from '@/types/grocery';
@@ -20,6 +21,7 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
   const qrScannerRef = useRef<QrScanner | null>(null);
   const isHandlingRef = useRef(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Start camera and QR scanner when component mounts
   useEffect(() => {
@@ -162,7 +164,7 @@ export const ScannerView = ({ onProductFound }: ScannerViewProps) => {
       
       setTimeout(() => {
         stopAll();
-        window.location.assign(productUrl);
+        navigate(productUrl);
       }, 300);
     }
   };
